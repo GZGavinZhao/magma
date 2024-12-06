@@ -324,7 +324,9 @@ endif()
 if (MAGMA_ENABLE_HIP)
   set( GPU_TARGET "gfx900" CACHE STRING "HIP architectures to compile for" )
   list(APPEND CMAKE_PREFIX_PATH /opt/rocm /opt/rocm/lib/cmake/hip)
+  set( AMDGPU_TARGETS ${GPU_TARGET} )
   find_package( HIP )
+  find_package( hip REQUIRED )
   if (HIP_FOUND)
     message( STATUS "Found HIP ${HIP_VERSION}" )
     message( STATUS "    HIP_INCLUDE_DIRS:   ${HIP_INCLUDE_DIRS}"   )
@@ -334,76 +336,17 @@ if (MAGMA_ENABLE_HIP)
 
     set(HIP_SEPARABLE_COMPILATION ON)
 
-    if (GPU_TARGET MATCHES kaveri)
-      set( GPU_TARGET ${GPU_TARGET} gfx700 )
-    endif()
-
-    if (GPU_TARGET MATCHES hawaii)
-      set( GPU_TARGET ${GPU_TARGET} gfx701 )
-    endif()
-
-    if (GPU_TARGET MATCHES kabini)
-      set( GPU_TARGET ${GPU_TARGET} gfx703 )
-    endif()
-
-    if (GPU_TARGET MATCHES mullins)
-      set( GPU_TARGET ${GPU_TARGET} gfx703 )
-    endif()
-
-    if (GPU_TARGET MATCHES bonaire)
-      set( GPU_TARGET ${GPU_TARGET} gfx704 )
-    endif()
-
-    if (GPU_TARGET MATCHES carrizo)
-      set( GPU_TARGET ${GPU_TARGET} gfx801 )
-    endif()
-
-    if (GPU_TARGET MATCHES iceland)
-      set( GPU_TARGET ${GPU_TARGET} gfx802 )
-    endif()
-
-    if (GPU_TARGET MATCHES tonga)
-      set( GPU_TARGET ${GPU_TARGET} gfx802 )
-    endif()
-
-    if (GPU_TARGET MATCHES fiji)
-      set( GPU_TARGET ${GPU_TARGET} gfx803 )
-    endif()
-
-    if (GPU_TARGET MATCHES polaris10)
-      set( GPU_TARGET ${GPU_TARGET} gfx803 )
-    endif()
-
-    if (GPU_TARGET MATCHES tongapro)
-      set( GPU_TARGET ${GPU_TARGET} gfx805 )
-    endif()
-
-    if (GPU_TARGET MATCHES stoney)
-      set( GPU_TARGET ${GPU_TARGET} gfx810 )
-    endif()
-
-    set( DEVCCFLAGS  "" )
-    set(VALID_GFXS "700;701;702;703;704;705;801;802;803;805;810;900;902;904;906;908;909;90c;1010;1011;1012;1030;1031;1032;1033")
-    foreach( GFX ${VALID_GFXS} )
-      if ( GPU_TARGET MATCHES gfx${GFX} )
-	set( DEVCCFLAGS ${DEVCCFLAGS} --offload-arch=gfx${GFX} )
-      endif()
-    endforeach()
-
-    set( DEVCCFLAGS ${DEVCCFLAGS} -fPIC ${FORTRAN_CONVENTION} )
     set(MAGMA_HAVE_HIP "1")
     message( STATUS "Define -DMAGMA_HAVE_HIP" )
 
     set_property(TARGET hip::device APPEND PROPERTY COMPATIBLE_INTERFACE_BOOL INTERFACE_HIP_DEVICE_COMPILE)
     set_property(TARGET hip::device PROPERTY INTERFACE_HIP_DEVICE_COMPILE ON)
-    set(GPU_ARCH_FLAGS ${DEVCCFLAGS})
 
-    #add_compile_options(${GPU_ARCH_FLAGS})
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__HIP_PLATFORM_HCC__" )
+    add_compile_definitions(__HIP_PLATFORM_HCC__)
     option(ROCM_CORE "Location of the rocm-core package")
     execute_process(COMMAND "${CMAKE_SOURCE_DIR}/tools/get-rocm-version.sh" "${ROCM_CORE}" OUTPUT_VARIABLE ROCM_VERSION OUTPUT_STRIP_TRAILING_WHITESPACE)
     message(STATUS "ROCM_VERSION=${ROCM_VERSION}")
-    set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCM_VERSION=${ROCM_VERSION}" )
+    add_compile_definitions(ROCM_VERSION=${ROCM_VERSION})
   else()
     message( STATUS "Could not find HIP" )
   endif()
